@@ -79,36 +79,8 @@ fun MiTopHeader(
                 )
             }
 
-            // Action icons: Cleaner, FTP / Transfer, Search, More
+            // Action icons: Dual-Pane, Search, More (Clean, uncluttered MIUI top bar)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(
-                    onClick = onCleanerClick,
-                    modifier = Modifier
-                        .size(38.dp)
-                        .testTag("header_cleaner_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CleaningServices,
-                        contentDescription = "Cleaner",
-                        tint = MiOrange,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                IconButton(
-                    onClick = onFtpClick,
-                    modifier = Modifier
-                        .size(38.dp)
-                        .testTag("header_ftp_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Wifi,
-                        contentDescription = "Transfer to PC (FTP)",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
                 IconButton(
                     onClick = onDualPaneToggle,
                     modifier = Modifier.size(38.dp)
@@ -155,19 +127,35 @@ fun MiTopHeader(
                         onDismissRequest = { showMoreMenu = false }
                     ) {
                         DropdownMenuItem(
+                            text = { Text("Deep Cleaner") },
+                            leadingIcon = { Icon(Icons.Default.CleaningServices, contentDescription = null, tint = MiOrange) },
+                            onClick = {
+                                showMoreMenu = false
+                                onCleanerClick()
+                            }
+                        )
+                        DropdownMenuItem(
                             text = { Text("Cloud & Network Drives") },
-                            leadingIcon = { Icon(Icons.Default.CloudQueue, contentDescription = null, tint = MiOrange) },
+                            leadingIcon = { Icon(Icons.Default.CloudQueue, contentDescription = null, tint = Color(0xFF0EA5E9)) },
                             onClick = {
                                 showMoreMenu = false
                                 onNetworkDrivesClick()
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Mi Fast Share (P2P Wi-Fi)") },
+                            text = { Text("Mi Fast Share (Wi-Fi P2P)") },
                             leadingIcon = { Icon(Icons.Default.WifiTethering, contentDescription = null, tint = Color(0xFF10B981)) },
                             onClick = {
                                 showMoreMenu = false
                                 onFastShareClick()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Transfer to PC (FTP)") },
+                            leadingIcon = { Icon(Icons.Default.Wifi, contentDescription = null, tint = Color(0xFF6366F1)) },
+                            onClick = {
+                                showMoreMenu = false
+                                onFtpClick()
                             }
                         )
                         HorizontalDivider()

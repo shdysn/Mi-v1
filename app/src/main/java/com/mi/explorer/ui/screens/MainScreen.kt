@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -295,6 +296,7 @@ fun MainScreen(
                         onTrashClick = { viewModel.openTrash() },
                         onNetworkDrivesClick = { viewModel.openNetworkDrives() },
                         onFastShareClick = { viewModel.openFastShare() },
+                        onFtpClick = { viewModel.openFtpServer() },
                         onDualPaneToggle = { viewModel.toggleDualPane() },
                         onCategoryClick = { cat, title -> viewModel.openCategory(cat, title) },
                         onAppManagerClick = { viewModel.openAppManager() },
@@ -695,7 +697,7 @@ fun MainScreen(
 }
 
 @Composable
-fun PowerToolCard(
+fun UtilityCard(
     title: String,
     subtitle: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -705,19 +707,19 @@ fun PowerToolCard(
 ) {
     Surface(
         modifier = modifier
+            .width(136.dp)
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         tonalElevation = 1.dp
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.padding(12.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(color.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center
             ) {
@@ -725,19 +727,22 @@ fun PowerToolCard(
                     imageVector = icon,
                     contentDescription = null,
                     tint = color,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = title,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                ),
+                maxLines = 1,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1
             )
@@ -913,6 +918,7 @@ fun StorageTabContent(
     onTrashClick: () -> Unit,
     onNetworkDrivesClick: () -> Unit = {},
     onFastShareClick: () -> Unit = {},
+    onFtpClick: () -> Unit = {},
     onDualPaneToggle: () -> Unit = {},
     onCategoryClick: (FileCategory, String) -> Unit,
     onAppManagerClick: () -> Unit,
@@ -953,6 +959,7 @@ fun StorageTabContent(
     }
 
     val isRoot = storageState.currentDir == rootStorageDir
+    var showToolsSheet by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier
@@ -960,138 +967,131 @@ fun StorageTabContent(
             .testTag("storage_tab_list"),
         contentPadding = PaddingValues(bottom = 32.dp)
     ) {
-        // Multi-Storage Volumes (Internal, SD Card, USB OTG)
-        if (storageVolumes.isNotEmpty()) {
-            item {
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(storageVolumes) { vol ->
-                        val isSelected = vol.id == selectedVolume?.id || (selectedVolume == null && vol.isPrimary)
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { onSwitchVolume(vol) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = when (vol.type) {
-                                        VolumeType.INTERNAL -> Icons.Default.PhoneAndroid
-                                        VolumeType.SD_CARD -> Icons.Default.SdCard
-                                        VolumeType.USB_OTG -> Icons.Default.Usb
-                                    },
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            },
-                            label = { Text("${vol.name} (${vol.formattedFree} free)") }
-                        )
-                    }
-                }
-            }
-        }
-
-        // Storage Card (Only on root storage)
+        // Root Home Dashboard View
         if (isRoot) {
+            // 1. Sleek Storage Card with integrated volume selector (Zero duplicate chips)
             item {
                 StorageCard(
                     storageSpace = storageSpace,
                     onCleanClick = onCleanClick,
+                    storageVolumes = storageVolumes,
+                    selectedVolume = selectedVolume,
+                    onSwitchVolume = onSwitchVolume,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
 
-            // 8 Category Tiles Grid
+            // 2. 8-tile MIUI Category Grid (with "Tools" tile triggering the full sheet)
             item {
                 CategoryGrid(
                     onCategoryClick = onCategoryClick,
-                    onCleanerClick = onCleanClick,
-                    onAppManagerClick = onAppManagerClick,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    onToolsClick = { showToolsSheet = true },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
 
-            // Exclusive Power Tools Row
+            // 3. Signature MIUI Utilities Carousel (Horizontal, spacious, NO text truncation)
             item {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(top = 4.dp, bottom = 4.dp)
                 ) {
-                    PowerToolCard(
-                        title = "Vault",
-                        subtitle = "Hidden & Safe",
-                        icon = Icons.Default.Lock,
-                        color = MiOrange,
-                        onClick = onVaultClick,
-                        modifier = Modifier.weight(1f)
-                    )
-                    PowerToolCard(
-                        title = "Duplicates",
-                        subtitle = "Free space",
-                        icon = Icons.Default.ContentCopy,
-                        color = Color(0xFF10B981),
-                        onClick = onDuplicatesClick,
-                        modifier = Modifier.weight(1f)
-                    )
-                    PowerToolCard(
-                        title = "Analyzer",
-                        subtitle = "Storage map",
-                        icon = Icons.Default.PieChart,
-                        color = Color(0xFF3B82F6),
-                        onClick = onAnalyzerClick,
-                        modifier = Modifier.weight(1f)
-                    )
-                    PowerToolCard(
-                        title = "Recycle Bin",
-                        subtitle = "Trash restore",
-                        icon = Icons.Default.DeleteOutline,
-                        color = Color(0xFFEF4444),
-                        onClick = onTrashClick,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    PowerToolCard(
-                        title = "Cloud Drives",
-                        subtitle = "SMB/WebDAV",
-                        icon = Icons.Default.CloudQueue,
-                        color = Color(0xFF0EA5E9),
-                        onClick = onNetworkDrivesClick,
-                        modifier = Modifier.weight(1f)
-                    )
-                    PowerToolCard(
-                        title = "Fast Share",
-                        subtitle = "Wi-Fi Direct",
-                        icon = Icons.Default.WifiTethering,
-                        color = Color(0xFF10B981),
-                        onClick = onFastShareClick,
-                        modifier = Modifier.weight(1f)
-                    )
-                    PowerToolCard(
-                        title = "Dual Pane",
-                        subtitle = "Split screen",
-                        icon = Icons.Default.VerticalSplit,
-                        color = Color(0xFF8B5CF6),
-                        onClick = onDualPaneToggle,
-                        modifier = Modifier.weight(1f)
-                    )
-                    PowerToolCard(
-                        title = "App Manager",
-                        subtitle = "APK backup",
-                        icon = Icons.Default.Apps,
-                        color = Color(0xFFF59E0B),
-                        onClick = onAppManagerClick,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Utilities",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        TextButton(
+                            onClick = { showToolsSheet = true },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                        ) {
+                            Text("View All", color = MiOrange, style = MaterialTheme.typography.labelMedium)
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MiOrange,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        item {
+                            UtilityCard(
+                                title = "Private Vault",
+                                subtitle = "Fingerprint safe",
+                                icon = Icons.Default.Lock,
+                                color = MiOrange,
+                                onClick = onVaultClick
+                            )
+                        }
+                        item {
+                            UtilityCard(
+                                title = "Mi Fast Share",
+                                subtitle = "Direct Wi-Fi",
+                                icon = Icons.Default.WifiTethering,
+                                color = Color(0xFF10B981),
+                                onClick = onFastShareClick
+                            )
+                        }
+                        item {
+                            UtilityCard(
+                                title = "Cloud Drives",
+                                subtitle = "SMB / WebDAV",
+                                icon = Icons.Default.CloudQueue,
+                                color = Color(0xFF0EA5E9),
+                                onClick = onNetworkDrivesClick
+                            )
+                        }
+                        item {
+                            UtilityCard(
+                                title = "Recycle Bin",
+                                subtitle = "30d auto-purge",
+                                icon = Icons.Default.DeleteOutline,
+                                color = Color(0xFFEF4444),
+                                onClick = onTrashClick
+                            )
+                        }
+                        item {
+                            UtilityCard(
+                                title = "Analyzer",
+                                subtitle = "Storage map",
+                                icon = Icons.Default.PieChart,
+                                color = Color(0xFF3B82F6),
+                                onClick = onAnalyzerClick
+                            )
+                        }
+                        item {
+                            UtilityCard(
+                                title = "Duplicates",
+                                subtitle = "Clean redundant",
+                                icon = Icons.Default.ContentCopy,
+                                color = Color(0xFF14B8A6),
+                                onClick = onDuplicatesClick
+                            )
+                        }
+                        item {
+                            UtilityCard(
+                                title = "Transfer to PC",
+                                subtitle = "FTP server",
+                                icon = Icons.Default.Wifi,
+                                color = Color(0xFF6366F1),
+                                onClick = onFtpClick
+                            )
+                        }
+                    }
                 }
             }
 
@@ -1162,42 +1162,79 @@ fun StorageTabContent(
 
             item {
                 HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                 )
             }
         }
 
-        // Color Tags Quick Filter
+        // Section header for Files & Folders
         item {
-            LazyRow(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                item {
-                    FilterChip(
-                        selected = selectedTagFilter == null,
-                        onClick = { onFilterTag(null) },
-                        label = { Text("All Files") }
-                    )
-                }
-                items(ColorTag.PRESET_TAGS) { tag ->
-                    val isSelected = selectedTagFilter == tag.id
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onFilterTag(if (isSelected) null else tag.id) },
-                        leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(tag.composeColor)
+                Text(
+                    text = if (isRoot) "Files & Folders" else storageState.currentDir.name,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (selectedTagFilter != null) {
+                    Surface(
+                        color = MiOrange.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.clickable { onFilterTag(null) }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Tag: $selectedTagFilter ✕",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MiOrange
                             )
-                        },
-                        label = { Text(tag.name) }
-                    )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Color Tags Quick Filter (When browsing folders or when a tag is active)
+        if (!isRoot || selectedTagFilter != null) {
+            item {
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = selectedTagFilter == null,
+                            onClick = { onFilterTag(null) },
+                            label = { Text("All Files") }
+                        )
+                    }
+                    items(ColorTag.PRESET_TAGS) { tag ->
+                        val isSelected = selectedTagFilter == tag.id
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onFilterTag(if (isSelected) null else tag.id) },
+                            leadingIcon = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(tag.composeColor)
+                                )
+                            },
+                            label = { Text(tag.name) }
+                        )
+                    }
                 }
             }
         }
@@ -1373,6 +1410,23 @@ fun StorageTabContent(
                 )
             }
         }
+    }
+
+    if (showToolsSheet) {
+        MiToolsBottomSheet(
+            onDismiss = { showToolsSheet = false },
+            onVaultClick = onVaultClick,
+            onFastShareClick = onFastShareClick,
+            onNetworkDrivesClick = onNetworkDrivesClick,
+            onTrashClick = onTrashClick,
+            onAnalyzerClick = onAnalyzerClick,
+            onDuplicatesClick = onDuplicatesClick,
+            onCleanerClick = onCleanClick,
+            onAppManagerClick = onAppManagerClick,
+            onFtpClick = onFtpClick,
+            onDualPaneToggle = onDualPaneToggle,
+            isDualPaneActive = isDualPaneActive
+        )
     }
 }
 

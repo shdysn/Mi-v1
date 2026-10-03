@@ -28,15 +28,13 @@ data class MiCategory(
     val iconColor: Color,
     val bgColor: Color,
     val category: FileCategory?,
-    val isCleaner: Boolean = false,
-    val isApkManager: Boolean = false
+    val isTools: Boolean = false
 )
 
 @Composable
 fun CategoryGrid(
     onCategoryClick: (FileCategory, String) -> Unit,
-    onCleanerClick: () -> Unit,
-    onAppManagerClick: () -> Unit,
+    onToolsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val items = listOf(
@@ -47,7 +45,7 @@ fun CategoryGrid(
         MiCategory("APKs", Icons.Default.Android, Color.White, MiGreen, FileCategory.APK),
         MiCategory("Downloads", Icons.Default.Download, Color.White, MiCyan, null),
         MiCategory("Archives", Icons.Default.Archive, Color.White, MiAmber, FileCategory.ARCHIVE),
-        MiCategory("Cleaner", Icons.Default.CleaningServices, Color.White, MiMint, null, isCleaner = true)
+        MiCategory("Tools", Icons.Default.Widgets, Color.White, Color(0xFF6366F1), null, isTools = true)
     )
 
     Column(
@@ -64,11 +62,12 @@ fun CategoryGrid(
                 CategoryTile(
                     category = cat,
                     onClick = {
-                        when {
-                            cat.isCleaner -> onCleanerClick()
-                            cat.isApkManager -> onAppManagerClick()
-                            cat.category != null -> onCategoryClick(cat.category, cat.title)
-                            cat.title == "Downloads" -> onCategoryClick(FileCategory.UNKNOWN, "Downloads")
+                        if (cat.isTools) {
+                            onToolsClick()
+                        } else if (cat.category != null) {
+                            onCategoryClick(cat.category, cat.title)
+                        } else if (cat.title == "Downloads") {
+                            onCategoryClick(FileCategory.UNKNOWN, "Downloads")
                         }
                     },
                     modifier = Modifier.weight(1f)
@@ -87,11 +86,12 @@ fun CategoryGrid(
                 CategoryTile(
                     category = cat,
                     onClick = {
-                        when {
-                            cat.isCleaner -> onCleanerClick()
-                            cat.isApkManager -> onAppManagerClick()
-                            cat.category != null -> onCategoryClick(cat.category, cat.title)
-                            cat.title == "Downloads" -> onCategoryClick(FileCategory.UNKNOWN, "Downloads")
+                        if (cat.isTools) {
+                            onToolsClick()
+                        } else if (cat.category != null) {
+                            onCategoryClick(cat.category, cat.title)
+                        } else if (cat.title == "Downloads") {
+                            onCategoryClick(FileCategory.UNKNOWN, "Downloads")
                         }
                     },
                     modifier = Modifier.weight(1f)
@@ -139,7 +139,8 @@ private fun CategoryTile(
                 fontWeight = FontWeight.Medium,
                 fontSize = 12.sp
             ),
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1
         )
     }
 }
